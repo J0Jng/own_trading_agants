@@ -31,6 +31,9 @@ PROVIDER_API_KEY_ENV: dict[str, str | None] = {
     "openrouter": "OPENROUTER_API_KEY",
     # OpenCode Go gateway (openai-compatible). Local addition.
     "opencode":   "OPENCODE_API_KEY",
+    # Volcengine Ark "Coding Plan" — OpenAI-compatible subscription
+    # (ark-code-latest and other code models). Local addition.
+    "codingplan": "CODINGPLAN_API_KEY",
     # Additional hosted OpenAI-compatible providers (model is user-specified).
     # kimi -> Moonshot AI; nvidia -> NVIDIA NIM.
     "mistral":    "MISTRAL_API_KEY",

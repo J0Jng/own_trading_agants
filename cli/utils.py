@@ -355,6 +355,11 @@ def _llm_provider_table() -> list[tuple[str, str, str | None]]:
         ("GLM", "glm", "https://open.bigmodel.cn/api/paas/v4/"),
         ("MiniMax", "minimax", "https://api.minimax.io/v1"),
         ("OpenRouter", "openrouter", "https://openrouter.ai/api/v1"),
+        # Local fork additions — OpenAI-compatible providers wired in the
+        # registry (openai_client.OPENAI_COMPATIBLE_PROVIDERS) but absent from
+        # upstream's hard-coded picker. codingplan is the default provider.
+        ("Coding Plan (火山方舟 Ark)", "codingplan", "https://ark.cn-beijing.volces.com/api/coding/v3"),
+        ("OpenCode (OpenCode Go gateway)", "opencode", "https://opencode.ai/zen/go/v1"),
         ("Mistral", "mistral", "https://api.mistral.ai/v1"),
         ("Kimi (Moonshot)", "kimi", "https://api.moonshot.ai/v1"),
         ("Groq", "groq", "https://api.groq.com/openai/v1"),

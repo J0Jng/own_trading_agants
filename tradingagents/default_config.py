@@ -78,11 +78,13 @@ DEFAULT_CONFIG = _apply_env_overrides({
     # Pending entries are never pruned. None disables rotation entirely.
     "memory_log_max_entries": None,
     # LLM settings
-    "llm_provider": "opencode",
-    # opencode is OpenAI-compatible (OpenCode Go gateway). Model IDs here are
-    # routed through OPENCODE_API_KEY; pick any model the gateway serves.
-    "deep_think_llm": "deepseek-v4-flash",
-    "quick_think_llm": "deepseek-v4-flash",
+        "llm_provider": "codingplan",
+        # codingplan is the default provider for this fork — Volcengine Ark "Coding
+        # Plan", an OpenAI-compatible subscription whose model is pinned to
+        # ark-code-latest (console-switchable). Set OPENCODE_API_KEY / other
+        # providers' keys + llm_provider to switch.
+        "deep_think_llm": "ark-code-latest",
+        "quick_think_llm": "ark-code-latest",
     # When None, each provider's client falls back to its own default endpoint
     # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
     # The CLI overrides this per provider when the user picks one. Keeping a

@@ -35,15 +35,7 @@ _GLM_MODELS: dict[str, list[ModelOption]] = {
 
 # Shared model list for Qwen's global (dashscope-intl) and CN (dashscope) endpoints.
 # Source: modelstudio.console.alibabacloud.com (Featured Models — Flagship + Cost-optimized).
-#
-# Only versioned IDs are exposed in the dropdown. The version-less aliases
-# (qwen-plus, qwen-flash) are documented by Alibaba as auto-upgrading
-# pointers ("backbone, latest, and snapshot ... have been upgraded to the
-# Qwen3 series"), which means their behavior shifts when Alibaba rotates
-# the backing model. Users who want a specific generation pick it
-# explicitly; users who really want auto-latest can enter the alias via
-# "Custom model ID".
-_QWEN_MODELS: dict[str, list[ModelOption]] = {
+_QUEN_MODELS: dict[str, list[ModelOption]] = {
     "quick": [
         ("Qwen 3.7 Plus - Latest, balanced speed/cost", "qwen3.7-plus"),
         ("Qwen 3.6 Plus - Previous-gen balanced", "qwen3.6-plus"),
@@ -59,7 +51,7 @@ _QWEN_MODELS: dict[str, list[ModelOption]] = {
 
 
 # Shared model list for MiniMax's global and CN endpoints (same IDs).
-# Full official lineup per platform.minimax.io/docs/api-reference/text-openai-api.
+# Source: platform.minimax.io/docs/api-reference/text-openai-api.
 # M3 carries a 1M-token context window; the M2.x line is 204,800 tokens.
 _MINIMAX_MODELS: dict[str, list[ModelOption]] = {
     "quick": [
@@ -73,6 +65,36 @@ _MINIMAX_MODELS: dict[str, list[ModelOption]] = {
         ("MiniMax-M2.7 - Previous flagship, 204K ctx", "MiniMax-M2.7"),
         ("MiniMax-M2.7-highspeed - Same quality as M2.7, ~100 TPS", "MiniMax-M2.7-highspeed"),
         ("MiniMax-M2.5 - Earlier flagship, 204K ctx", "MiniMax-M2.5"),
+        ("Custom model ID", "custom"),
+    ],
+}
+
+
+# Shared model list for Volcengine Ark "Coding Plan" (provider key: codingplan).
+# Model names are fixed — Coding Plan does NOT support "Auto" mode; add a model
+# by switching it in the console. Source: docs.volcengine.com "其他工具 / Core
+# configuration" (OpenAI-compatible protocol, /api/coding/v3). ark-code-latest
+# resolves to whichever model is currently selected in the console, so it is
+# offered first and pinned by default in default_config.
+_CODINGPLAN_MODELS: dict[str, list[ModelOption]] = {
+    "quick": [
+        ("ark-code-latest — console-selected model (default)", "ark-code-latest"),
+        ("deepseek-v4-flash - Fast DeepSeek", "deepseek-v4-flash"),
+        ("glm-5.3-flash - Lightweight GLM", "glm-5.3-flash"),
+        ("doubao-seed-2.0-lite - Lite Doubao", "doubao-seed-2.0-lite"),
+        ("Custom model ID", "custom"),
+    ],
+    "deep": [
+        ("ark-code-latest — console-selected model (default)", "ark-code-latest"),
+        ("doubao-seed-2.1-turbo - Doubao turbo", "doubao-seed-2.1-turbo"),
+        ("doubao-seed-2.0-lite - Lite Doubao", "doubao-seed-2.0-lite"),
+        ("doubao-seed-evolving - Evolving Doubao", "doubao-seed-evolving"),
+        ("deepseek-v4-pro - DeepSeek Pro", "deepseek-v4-pro"),
+        ("deepseek-v4-flash - Fast DeepSeek", "deepseek-v4-flash"),
+        ("glm-5.3 - GLM flagship", "glm-5.3"),
+        ("glm-5.3-flash - Lightweight GLM", "glm-5.3-flash"),
+        ("kimi-k2.7-code - Kimi code", "kimi-k2.7-code"),
+        ("minimax-m3 - MiniMax M3", "minimax-m3"),
         ("Custom model ID", "custom"),
     ],
 }
@@ -127,9 +149,8 @@ MODEL_OPTIONS: ProviderModeOptions = {
         ],
     },
     # DeepSeek: the deepseek-chat / deepseek-reasoner aliases are deprecated
-    # (2026-07-24) and now map to V4 Flash; expose the V4 IDs directly. V4 Flash
-    # serves both non-thinking and thinking modes (the DeepSeekChatOpenAI client
-    # handles the reasoning_content round-trip).
+    # and now map to V4 Flash; expose the V4 IDs directly. V4 Flash serves both
+    # thinking and non-thinking modes.
     "deepseek": {
         "quick": [
             ("DeepSeek V4 Flash - Latest fast model, thinking + non-thinking", "deepseek-v4-flash"),
@@ -141,26 +162,15 @@ MODEL_OPTIONS: ProviderModeOptions = {
             ("Custom model ID", "custom"),
         ],
     },
-    # Qwen: same model IDs across global (dashscope-intl) and China
-    # (dashscope) endpoints, so the two provider keys share one model list.
-    "qwen": _QWEN_MODELS,
-    "qwen-cn": _QWEN_MODELS,
-    # GLM: Z.AI (international) and BigModel (China) host the same model
-    # IDs; the two provider keys share one model list.
+    # Qwen: same model IDs across global and China endpoints, shared list.
+    "qwen": _QUEN_MODELS,
+    "qwen-cn": _QUEN_MODELS,
+    # GLM: Z.AI (international) and BigModel (China) host same IDs, shared list.
     "glm": _GLM_MODELS,
     "glm-cn": _GLM_MODELS,
-    # MiniMax: same model IDs across global (.io) and China (.com) regions,
-    # so the two provider keys share one model list.
+    # MiniMax: same model IDs across global (.io) and China (.com) regions.
     "minimax": _MINIMAX_MODELS,
     "minimax-cn": _MINIMAX_MODELS,
-    # OpenRouter: fetched dynamically. Azure: any deployed model name.
-    # Ollama display labels intentionally omit a "local" marker — the
-    # endpoint is now configurable via OLLAMA_BASE_URL, so the same labels
-    # apply whether the user runs ollama-serve on localhost or against a
-    # remote host. The actual resolved endpoint is surfaced separately by
-    # cli.utils.confirm_ollama_endpoint() right after provider selection.
-    # "Custom model ID" lets users pick any model they have pulled via
-    # `ollama pull` beyond the three suggested defaults.
     "ollama": {
         "quick": [
             ("Qwen3:latest (8B)", "qwen3:latest"),
@@ -186,13 +196,16 @@ MODEL_OPTIONS: ProviderModeOptions = {
     "kimi": _CUSTOM_ONLY,
     "groq": _CUSTOM_ONLY,
     "nvidia": _CUSTOM_ONLY,
+    # Coding Plan (Volcengine Ark): fixed list of officially supported models
+    # (no "Auto" mode); ark-code-latest resolves to the console-selected model.
+    "codingplan": _CODINGPLAN_MODELS,
     # Bedrock model IDs / cross-region inference profile IDs are user-specified.
-        "bedrock": _CUSTOM_ONLY,
-        # OpenCode Go gateway serves many (and frequently changing) models
-        # (DeepSeek/MiniMax/Qwen/GLM/Kimi...) — offer "Custom model ID" rather
-        # than a list that goes stale. Endpoint + key are wired by the provider.
-        "opencode": _CUSTOM_ONLY,
-    }
+    "bedrock": _CUSTOM_ONLY,
+    # OpenCode Go gateway serves many (and frequently changing) models
+    # (DeepSeek/MiniMax/Qwen/GLM/Kimi...) — offer "Custom model ID" rather
+    # than a list that goes stale. Endpoint + key are wired by the provider.
+    "opencode": _CUSTOM_ONLY,
+}
 
 
 def get_model_options(provider: str, mode: str) -> list[ModelOption]:

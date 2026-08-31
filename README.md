@@ -17,7 +17,7 @@
 |---|---|---|
 | **股票/行情数据源** | Yahoo Finance / Alpha Vantage / FRED / Polymarket | **妙想 MX (东方财富) 优先，Tushare 兜底** |
 | **新闻/基本面** | Alpha Vantage / Yahoo | 妙想 MX + Tushare |
-| **LLM 提供商默认** | openai (gpt-5.x) | **opencode** (OpenCode Go 网关) |
+| **LLM 提供商默认** | openai (gpt-5.x) | **codingplan** (火山方舟 Coding Plan, `ark-code-latest`) |
 | **默认数据供应商** | yfinance | 保留 yfinance/alpha_vantage 但按 MX/Tushare 优先路由 |
 | **新增配置** | — | `mx_min_call_interval` / `mx_request_timeout` |
 
@@ -27,8 +27,8 @@
 - 路由层沿用了上游的**类型化错误处理**（`NoMarketDataError` / `VendorRateLimitError` / `VendorNotConfiguredError`）与可选类别降级（macro/prediction 失败不中断主分析）。
 
 ### LLM 提供商
-- 默认 `llm_provider: opencode`，读取 **`OPENCODE_API_KEY`**，走 OpenCode Go 网关（`https://opencode.ai/zen/go/v1`），可选用 DeepSeek / MiniMax / Qwen / GLM / Kimi 等任意模型。
-- 上游其它提供商（OpenAI、Anthropic、Google、DeepSeek、Qwen、GLM、MiniMax、Ollama、OpenRouter、Azure、Bedrock）全部保留，可切换。
+- 默认 `llm_provider: codingplan`（模型固定 `ark-code-latest`），读取 **`CODINGPLAN_API_KEY`**，走火山方舟 Coding Plan 的 OpenAI 兼容接口（`https://ark.cn-beijing.volces.com/api/coding/v3`，启用 Responses API）。模型在控制台统一切换，也可用具体 Model Name（`doubao-seed-2.0-lite` / `kimi-k2.7-code` / `minimax-m3` / `doubao-seed-2.1-turbo` / `deepseek-v4-flash` / `glm-5.3` / `doubao-seed-evolving` / `deepseek-v4-pro` / `glm-5.3-flash` 等）。注意不支持 `Auto` 模式。
+- 上游其它提供商（OpenAI、Anthropic、Google、DeepSeek、Qwen、GLM、MiniMax、Ollama、OpenRouter、Azure、Bedrock）全部保留，切换 `llm_provider` 即可。也可用 `opencode`（OpenCode Go 网关）。
 
 ---
 
@@ -56,11 +56,12 @@ uv pip install -e .
 MX_APIKEY=your-mx-miaoxiang-key        # 妙想/East Money（推荐）
 TUSHARE_TOKEN=your-tushare-token       # Tushare 兜底
 
-# ---- LLM 提供商（默认 opencode）----
-OPENCODE_API_KEY=your-opencode-key     # OpenCode Go 网关（默认提供商）
+# ---- LLM 提供商（默认 codingplan）----
+CODINGPLAN_API_KEY=your-codingplan-key   # 火山方舟 Coding Plan（默认提供商，模型 ark-code-latest）
+# 备用/其它: OPENCODE_API_KEY=...  或  OPENAI_API_KEY=...
 ```
 
-> 默认 `llm_provider: opencode`。若要换用其它提供商，设 `TRADINGAGENTS_LLM_PROVIDER` 环境变量（如 `openai` / `deepseek` / `qwen-cn` 等）或直接改 `default_config.py`。
+> 默认 `llm_provider: codingplan`、模型 `ark-code-latest`。若要换用其它提供商，设 `TRADINGAGENTS_LLM_PROVIDER` 环境变量（如 `opencode` / `openai` / `deepseek` / `qwen-cn` 等）或直接改 `default_config.py`。
 
 ### 3. 运行
 
@@ -93,8 +94,8 @@ from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 
 config = DEFAULT_CONFIG.copy()
-config["deep_think_llm"] = "deepseek-v4-flash"   # 复杂推理
-config["quick_think_llm"] = "deepseek-v4-flash"  # 快速任务
+config["deep_think_llm"] = "ark-code-latest"   # 复杂推理（codingplan 默认模型）
+config["quick_think_llm"] = "ark-code-latest"  # 快速任务
 config["max_debate_rounds"] = 2
 
 ta = TradingAgentsGraph(debug=True, config=config)

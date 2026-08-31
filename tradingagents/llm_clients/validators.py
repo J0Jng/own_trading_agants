@@ -8,6 +8,8 @@ from .model_catalog import get_known_models
 _ANY_MODEL_PROVIDERS = (
     "ollama", "openrouter", "openai_compatible",
     "mistral", "kimi", "groq", "nvidia", "bedrock",
+    # Coding Plan (Volcengine Ark) serves many / console-switchable code models.
+    "codingplan",
 )
 
 VALID_MODELS = {

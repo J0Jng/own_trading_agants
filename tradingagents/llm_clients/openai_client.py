@@ -26,10 +26,6 @@ class NormalizedChatOpenAI(ChatOpenAI):
     (e.g. DeepSeek V4 and reasoner — per their official tool-calling
     guide) still bind the schema as a tool, but no ``tool_choice``
     parameter is sent.
-
-    Provider-specific quirks beyond structured-output (e.g. DeepSeek's
-    reasoning_content roundtrip) live in subclasses so this base class
-    stays small.
     """
 
     def invoke(self, input, config=None, **kwargs):
@@ -73,10 +69,6 @@ def _input_to_messages(input_: Any) -> list:
 
     Accepts a list of messages, a ``ChatPromptValue`` (from a
     ChatPromptTemplate), or anything else (treated as no messages).
-    Used by providers that need to walk the outgoing message history;
-    in particular DeepSeek thinking-mode propagation must work for
-    both bare-list invocations and ChatPromptTemplate-driven ones, so
-    treating only ``list`` here would silently skip half the call sites.
     """
     if isinstance(input_, list):
         return input_
@@ -92,12 +84,6 @@ class DeepSeekChatOpenAI(NormalizedChatOpenAI):
     stays here. When DeepSeek's thinking models return a response with
     ``reasoning_content``, that field must be echoed back as part of the
     assistant message on the next turn or the API fails with HTTP 400.
-    ``_create_chat_result`` captures it on receive and
-    ``_get_request_payload`` re-attaches it on send.
-
-    Tool-choice handling for V4 and reasoner — those models reject the
-    ``tool_choice`` parameter — is handled by the capability dispatch in
-    ``NormalizedChatOpenAI.with_structured_output``, not here.
     """
 
     def _get_request_payload(self, input_, *, stop=None, **kwargs):
@@ -132,31 +118,17 @@ class DeepSeekChatOpenAI(NormalizedChatOpenAI):
 class MinimaxChatOpenAI(NormalizedChatOpenAI):
     """MiniMax-specific overrides on top of the OpenAI-compatible client.
 
-    M2.x reasoning models embed ``<think>...</think>`` blocks directly in
+    M2.x reasoning models embed `` reasoning...`` blocks directly in
     ``message.content`` by default, which would pollute saved reports.
-    Per platform.minimax.io/docs/api-reference/text-openai-api,
     ``reasoning_split=True`` redirects the thinking block into
-    ``reasoning_details`` so ``content`` stays clean. It is sent via
-    ``extra_body`` (not a top-level kwarg) because the openai SDK validates
-    top-level params and rejects unknown ones like reasoning_split (#826).
-
-    The flag is gated by ``ModelCapabilities.requires_reasoning_split`` so
-    only M2.x reasoning models receive it; non-reasoning MiniMax endpoints
-    (Coding Plan, MiniMax-Text-01) never see it.
-
-    Tool-choice handling for M2.x — those models accept only the string
-    enum ``{"none", "auto"}`` and reject langchain's function-spec dict —
-    is handled by the capability dispatch in
-    ``NormalizedChatOpenAI.with_structured_output``, not here.
+    ``reasoning_details`` so ``content`` stays clean. The flag is gated by
+    ``ModelCapabilities.requires_reasoning_split`` so only M2.x reasoning
+    models receive it; non-reasoning MiniMax endpoints never see it.
     """
 
     def _get_request_payload(self, input_, *, stop=None, **kwargs):
         payload = super()._get_request_payload(input_, stop=stop, **kwargs)
         if get_capabilities(self.model_name).requires_reasoning_split:
-            # Pass via extra_body, not as a top-level kwarg: the openai SDK
-            # (>=1.56) validates top-level params against Completions.create
-            # and rejects unknown ones like reasoning_split (#826). extra_body
-            # is forwarded into the request body untouched.
             extra_body = payload.setdefault("extra_body", {})
             extra_body.setdefault("reasoning_split", True)
         return payload
@@ -169,14 +141,11 @@ _PASSTHROUGH_KWARGS = (
 )
 
 # OpenAI's ``reasoning_effort`` is only accepted by reasoning models — the GPT-5
-# family and the o-series. Non-reasoning models (gpt-4.1, gpt-4o, ...) 400 with
-# "Unsupported parameter: 'reasoning.effort' is not supported with this model".
-# Drop the kwarg for those rather than crash the run.
+# family and the o-series. Non-reasoning models 400 with "Unsupported parameter".
 _OPENAI_REASONING_MODEL = re.compile(r"^(gpt-5|o[1-9])")
 
 
 def _supports_reasoning_effort(model: str) -> bool:
-    """Whether the (native OpenAI) model accepts ``reasoning_effort``."""
     return bool(_OPENAI_REASONING_MODEL.match(model.lower().strip()))
 
 
@@ -204,6 +173,10 @@ class ProviderSpec:
     placeholder_key: str = "EMPTY"            # sent when no key is available (keyless local servers)
     require_base_url: bool = False            # error if no base_url is resolved (generic endpoint)
     use_responses_api: bool = False           # native OpenAI Responses API
+    # Extra base_URL host(s) (beyond native api.openai.com) that also implement
+    # the Responses API. Used to enable Responses for OpenAI-compatible third
+    # parties (e.g. Volcengine Ark Coding Plan) that expose /v1/responses.
+    responses_hosts: tuple[str, ...] = ()
 
 
 # Single source of truth for the OpenAI-compatible provider family. Dual-region
@@ -220,8 +193,16 @@ OPENAI_COMPATIBLE_PROVIDERS: dict[str, ProviderSpec] = {
     "minimax":    ProviderSpec(base_url="https://api.minimax.io/v1", chat_class=MinimaxChatOpenAI),
     "minimax-cn": ProviderSpec(base_url="https://api.minimaxi.com/v1", chat_class=MinimaxChatOpenAI),
     "openrouter": ProviderSpec(base_url="https://openrouter.ai/api/v1"),
-        "opencode":   ProviderSpec(base_url="https://opencode.ai/zen/go/v1"),
-        "mistral":    ProviderSpec(base_url="https://api.mistral.ai/v1"),
+    "opencode":   ProviderSpec(base_url="https://opencode.ai/zen/go/v1"),
+    # Volcengine Ark "Coding Plan" — OpenAI-compatible subscription whose
+    # endpoint implements the Responses API. Use /api/coding/v3 (plan quota),
+    # NOT /api/v3 (billed per token). Model pinned to ark-code-latest.
+    "codingplan": ProviderSpec(
+        base_url="https://ark.cn-beijing.volces.com/api/coding/v3",
+        use_responses_api=True,
+        responses_hosts=("ark.cn-beijing.volces.com",),
+    ),
+    "mistral":    ProviderSpec(base_url="https://api.mistral.ai/v1"),
     "kimi":       ProviderSpec(base_url="https://api.moonshot.ai/v1"),
     "groq":       ProviderSpec(base_url="https://api.groq.com/openai/v1"),
     "nvidia":     ProviderSpec(base_url="https://integrate.api.nvidia.com/v1"),
@@ -314,11 +295,17 @@ class OpenAIClient(BaseLLMClient):
                     f"(e.g. add {api_key_env}=your_key to your .env file)."
                 )
 
-            # The Responses API only exists on native OpenAI; if the user points
-            # the openai provider at a custom base_url (proxy/gateway/local), it
-            # only speaks Chat Completions, so keep Responses off there (#1024).
-            if spec.use_responses_api and _is_native_openai_base_url(base_url):
-                llm_kwargs["use_responses_api"] = True
+            # The Responses API only exists on native OpenAI and on the explicit
+            # third-party endpoints listed in spec.responses_hosts. Any other
+            # custom base_url speaks only Chat Completions, so keep Responses off
+            # there even though the provider spec enables it (#1024).
+            if spec.use_responses_api:
+                host = "api.openai.com"
+                if base_url:
+                    normalized = base_url if "://" in base_url else "https://" + base_url
+                    host = urlparse(normalized).hostname or ""
+                if _is_native_openai_base_url(base_url) or host in spec.responses_hosts:
+                    llm_kwargs["use_responses_api"] = True
         elif self.base_url:
             llm_kwargs["base_url"] = self.base_url
 
