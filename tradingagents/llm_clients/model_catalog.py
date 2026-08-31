@@ -187,8 +187,12 @@ MODEL_OPTIONS: ProviderModeOptions = {
     "groq": _CUSTOM_ONLY,
     "nvidia": _CUSTOM_ONLY,
     # Bedrock model IDs / cross-region inference profile IDs are user-specified.
-    "bedrock": _CUSTOM_ONLY,
-}
+        "bedrock": _CUSTOM_ONLY,
+        # OpenCode Go gateway serves many (and frequently changing) models
+        # (DeepSeek/MiniMax/Qwen/GLM/Kimi...) — offer "Custom model ID" rather
+        # than a list that goes stale. Endpoint + key are wired by the provider.
+        "opencode": _CUSTOM_ONLY,
+    }
 
 
 def get_model_options(provider: str, mode: str) -> list[ModelOption]:

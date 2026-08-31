@@ -78,9 +78,11 @@ DEFAULT_CONFIG = _apply_env_overrides({
     # Pending entries are never pruned. None disables rotation entirely.
     "memory_log_max_entries": None,
     # LLM settings
-    "llm_provider": "openai",
-    "deep_think_llm": "gpt-5.5",
-    "quick_think_llm": "gpt-5.4-mini",
+    "llm_provider": "opencode",
+    # opencode is OpenAI-compatible (OpenCode Go gateway). Model IDs here are
+    # routed through OPENCODE_API_KEY; pick any model the gateway serves.
+    "deep_think_llm": "deepseek-v4-flash",
+    "quick_think_llm": "deepseek-v4-flash",
     # When None, each provider's client falls back to its own default endpoint
     # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
     # The CLI overrides this per provider when the user picks one. Keeping a
@@ -131,10 +133,10 @@ DEFAULT_CONFIG = _apply_env_overrides({
     # routed to vendors you didn't choose. For ordered fallback, list several,
     # e.g. "yfinance,alpha_vantage". "default" uses all available vendors.
     "data_vendors": {
-        "core_stock_apis": "yfinance",       # Options: alpha_vantage, yfinance
-        "technical_indicators": "yfinance",  # Options: alpha_vantage, yfinance
-        "fundamental_data": "yfinance",      # Options: alpha_vantage, yfinance
-        "news_data": "yfinance",             # Options: alpha_vantage, yfinance
+        "core_stock_apis": "yfinance",       # Options: mx, tushare, alpha_vantage, yfinance
+        "technical_indicators": "yfinance",  # Options: mx, tushare, alpha_vantage, yfinance
+        "fundamental_data": "yfinance",      # Options: mx, tushare, alpha_vantage, yfinance
+        "news_data": "yfinance",             # Options: mx, tushare, alpha_vantage, yfinance
         "macro_data": "fred",                # Options: fred (needs FRED_API_KEY)
         "prediction_markets": "polymarket",  # Options: polymarket (keyless)
     },
@@ -142,6 +144,9 @@ DEFAULT_CONFIG = _apply_env_overrides({
     "tool_vendors": {
         # Example: "get_stock_data": "alpha_vantage",  # Override category default
     },
+    # MX (妙想/East Money) vendor settings — used by tradingagents.dataflows.mx_data.
+    "mx_min_call_interval": 2,    # Minimum seconds between MX API calls
+    "mx_request_timeout": 60,     # MX API request timeout (seconds per call)
     # Benchmark for alpha calculation in the reflection layer.
     # ``benchmark_ticker`` (when set) overrides the suffix map for all
     # tickers; leave it None to use ``benchmark_map`` for auto-detection

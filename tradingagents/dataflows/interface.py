@@ -30,6 +30,33 @@ from .y_finance import (
 )
 from .yfinance_news import get_global_news_yfinance, get_news_yfinance
 
+# Domestic Chinese vendors — MX (妙想/East Money) and Tushare. Local additions
+# on top of upstream, keeping the rest of the routing layer (typed errors,
+# optional-category degradation, sentinel messages) intact.
+from .mx_data import (
+    get_mx_stock_data,
+    get_mx_indicators,
+    get_mx_fundamentals,
+    get_mx_balance_sheet,
+    get_mx_cashflow,
+    get_mx_income_statement,
+    get_mx_news,
+    get_mx_global_news,
+    get_mx_insider_transactions,
+)
+from .tushare_stock import get_tushare_stock_data, get_tushare_indicators
+from .tushare_financial import (
+    get_tushare_fundamentals,
+    get_tushare_balance_sheet,
+    get_tushare_cashflow,
+    get_tushare_income_statement,
+)
+from .tushare_news import (
+    get_tushare_news,
+    get_tushare_global_news,
+    get_tushare_insider_transactions,
+)
+
 logger = logging.getLogger(__name__)
 
 # Tools organized by category
@@ -78,6 +105,8 @@ TOOLS_CATEGORIES = {
 }
 
 VENDOR_LIST = [
+    "mx",
+    "tushare",
     "yfinance",
     "fred",
     "polymarket",
@@ -95,49 +124,67 @@ OPTIONAL_CATEGORIES = {"macro_data", "prediction_markets"}
 VENDOR_METHODS = {
     # core_stock_apis
     "get_stock_data": {
+        "mx": get_mx_stock_data,
+        "tushare": get_tushare_stock_data,
         "alpha_vantage": get_alpha_vantage_stock,
         "yfinance": get_YFin_data_online,
     },
     # technical_indicators
     "get_indicators": {
+        "mx": get_mx_indicators,
+        "tushare": get_tushare_indicators,
         "alpha_vantage": get_alpha_vantage_indicator,
         "yfinance": get_stock_stats_indicators_window,
     },
     # fundamental_data
     "get_fundamentals": {
+        "mx": get_mx_fundamentals,
+        "tushare": get_tushare_fundamentals,
         "alpha_vantage": get_alpha_vantage_fundamentals,
         "yfinance": get_yfinance_fundamentals,
     },
     "get_balance_sheet": {
+        "mx": get_mx_balance_sheet,
+        "tushare": get_tushare_balance_sheet,
         "alpha_vantage": get_alpha_vantage_balance_sheet,
         "yfinance": get_yfinance_balance_sheet,
     },
     "get_cashflow": {
+        "mx": get_mx_cashflow,
+        "tushare": get_tushare_cashflow,
         "alpha_vantage": get_alpha_vantage_cashflow,
         "yfinance": get_yfinance_cashflow,
     },
     "get_income_statement": {
+        "mx": get_mx_income_statement,
+        "tushare": get_tushare_income_statement,
         "alpha_vantage": get_alpha_vantage_income_statement,
         "yfinance": get_yfinance_income_statement,
     },
     # news_data
     "get_news": {
+        "mx": get_mx_news,
+        "tushare": get_tushare_news,
         "alpha_vantage": get_alpha_vantage_news,
         "yfinance": get_news_yfinance,
     },
     "get_global_news": {
+        "mx": get_mx_global_news,
+        "tushare": get_tushare_global_news,
         "yfinance": get_global_news_yfinance,
         "alpha_vantage": get_alpha_vantage_global_news,
     },
     "get_insider_transactions": {
+        "mx": get_mx_insider_transactions,
+        "tushare": get_tushare_insider_transactions,
         "alpha_vantage": get_alpha_vantage_insider_transactions,
         "yfinance": get_yfinance_insider_transactions,
     },
-    # macro_data
+    # macro_data (upstream; no domestic equivalent)
     "get_macro_indicators": {
         "fred": get_fred_macro_data,
     },
-    # prediction_markets
+    # prediction_markets (upstream; no domestic equivalent)
     "get_prediction_markets": {
         "polymarket": get_polymarket_prediction_markets,
     },
