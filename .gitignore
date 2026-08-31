@@ -221,3 +221,9 @@ __marimo__/
 # Enterprise env file (secrets) and generated run reports
 .env.enterprise
 reports/
+
+# Local fork: uv lockfile and local-only mx/tushare HK indicator tests.
+# uv.lock is intentionally local (not shared); test_hk_indicators.py is a
+# local scratch test for the MX fallback path and is not part of CI.
+uv.lock
+tests/test_hk_indicators.py
